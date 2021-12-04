@@ -3,18 +3,12 @@
 var r = new MyReader(File.OpenText("large.txt"));
 
 int len = 0;
-int[] sums = null;
+int[]? sums = null;
 int lines = 0;
 
 while (!r.EOF) {
     var bits = r.ReadWord();
-
-    if (sums == null) {
-        // lazy init with proper length
-        len = bits.Length;
-        sums = new int[len];
-    }
-
+    if (sums == null) (len, sums) = InitSumsArray(bits);
     for (int i = 0; i < len; i++) {
         sums[i] += int.Parse(bits[i].ToString());
     }
@@ -38,3 +32,7 @@ Console.WriteLine($"epsilon: {epsilon}");
 
 Console.WriteLine($"gamma (binary): {Convert.ToString(gamma, toBase: 2)}");
 Console.WriteLine($"epsilon (binary): {Convert.ToString(epsilon, toBase: 2)}");
+
+(int, int[]) InitSumsArray(string bits) {
+    return (bits.Length, new int[bits.Length]);
+}

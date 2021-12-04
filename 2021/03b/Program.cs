@@ -1,5 +1,6 @@
 ﻿using utils;
 
+using var stopwatch = AutoStopwatch.Start();
 var lines = File.ReadAllLines("large.txt");
 
 int bitcount = lines[0].Length;

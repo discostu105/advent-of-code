@@ -53,6 +53,26 @@ public class MyReader {
 		return double.Parse(ReadWord());
 	}
 
+	public string ReadLine() {
+		eol = false;
+		var sb = new StringBuilder();
+		char c;
+		while (!sr.EndOfStream) {
+			c = (char)sr.Read();
+			if (IsNewLine(c)) {
+				eol = true;
+				char nextch = (char)sr.Peek();
+				while (IsNewLine(nextch)) {
+					sr.Read(); // consume all newlines
+					nextch = (char)sr.Peek();
+				}
+				break;
+			}
+			sb.Append(c);
+		}
+		return sb.ToString();
+	}
+
 	public bool EOF {
 		get { return sr.EndOfStream; }
 	}

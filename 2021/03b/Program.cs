@@ -16,21 +16,12 @@ for (int i = 0; i < bitcount; i++) {
     }
 }
 
+Console.WriteLine($"result part1: {gamma * epsilon}\n");
+
 var oxygen = CalcMetric(lines, true);
 var co2 = CalcMetric(lines, false);
 
-Console.WriteLine($"oxygen: {oxygen}");
-Console.WriteLine($"co2: {co2}");
-Console.WriteLine($"result: {oxygen * co2}\n");
-
-
-Console.WriteLine($"result: {gamma * epsilon}\n");
-
-Console.WriteLine($"gamma: {gamma}");
-Console.WriteLine($"epsilon: {epsilon}");
-
-Console.WriteLine($"gamma (binary): {Convert.ToString(gamma, toBase: 2)}");
-Console.WriteLine($"epsilon (binary): {Convert.ToString(epsilon, toBase: 2)}");
+Console.WriteLine($"result part2: {oxygen * co2}\n");
 
 int[] CalcSums(IEnumerable<string> lines, int bitcount) {
     var sums = new int[bitcount];

@@ -5,9 +5,12 @@ namespace utils;
 public class MyReader {
 	private StreamReader sr;
 
-	public MyReader(StreamReader sr) {
+	public MyReader(StreamReader sr, char[] separators = null) {
 		this.sr = sr;
-		this.Separator = ' ';
+		if (separators != null)
+			this.Separators = separators;
+		else
+			this.Separators = new char[] { ' ', ',' };
 	}
 
 	public string ReadWord() {
@@ -17,7 +20,7 @@ public class MyReader {
 		char c;
 		while (!sr.EndOfStream) {
 			c = (char)sr.Read();
-			if (c == Separator) break;
+			if (Separators.Contains(c)) break;
 			if (IsNewLine(c)) {
 				eol = true;
 				char nextch = (char)sr.Peek();
@@ -32,9 +35,20 @@ public class MyReader {
 		return sb.ToString();
 	}
 
+	// skip over some text. do not include separators in word
+    public void Skip(string word) {
+		SkipSeparators();
+		int i = 0;
+		while (!sr.EndOfStream) {
+			sr.Read();
+			i++;
+			if (i == word.Length) return;
+		}
+	}
+
     private void SkipSeparators() {
 		char nextch = (char)sr.Peek();
-		while (nextch == Separator) {
+		while (Separators.Contains(nextch)) {
 			sr.Read(); // consume all separators
 			nextch = (char)sr.Peek();
 		}
@@ -77,7 +91,7 @@ public class MyReader {
 		get { return sr.EndOfStream; }
 	}
 
-	public char Separator { get; set; }
+	public char[] Separators { get; set; }
 
 	bool eol;
 	public bool EOL {

@@ -21,12 +21,10 @@ foreach (var vector in vectors) {
     vector.MarkGrid(grid);
 }
 
+if (grid.GetLength(0) < 30) PrintGrid(grid); // only print small grids
+
 var dangerous = grid.Cast<int>().Count(x => x >= 2);
-
-//PrintGrid(grid);
-
 Console.WriteLine($"dangerous: {dangerous}");
-// wrong: 19830 -- too low
 
 void PrintGrid(int[,] grid) {
     for (int y = 0; y < grid.GetLength(0); y++) {
@@ -46,10 +44,7 @@ class Point : IParsable {
         X = r.ReadInt();
         Y = r.ReadInt();
     }
-
-    override public string ToString() {
-        return $"{X},{Y}";
-    }
+    override public string ToString() => $"{X},{Y}";
 }
 
 class Vector : IParsable {
@@ -62,73 +57,30 @@ class Vector : IParsable {
         B = r.ReadObject<Point>();
     }
 
-    internal bool IsHorizontal() {
-        return A.X == B.X;
-    }
+    internal bool IsHorizontal() => A.X == B.X;
+    internal bool IsVertical() => A.Y == B.Y;
+    internal bool IsDiagonal() => !IsVertical() && !IsHorizontal();
 
-    internal bool IsVertical() {
-        return A.Y == B.Y;
-    }
-    internal bool IsDiagonal() {
-        return !IsVertical() && !IsHorizontal();
-    }
-
-    public override string ToString() {
-        return $"{A} -> {B}";
-    }
+    public override string ToString() => $"{A} -> {B}";
 
     internal void MarkGrid(int[,] grid) {
-        if (IsHorizontal()) MarkGridHorizontal(grid);
-        if (IsVertical()) MarkGridVertical(grid);
-        if (IsDiagonal()) MarkGridDiagonal(grid);
-
-    }
-    private void MarkGridDiagonal(int[,] grid) {
-        if (!IsDiagonal()) return;
         bool xrising = A.X < B.X;
         bool yrising = A.Y < B.Y;
+        bool xflat = A.X == B.X;
+        bool yflat = A.Y == B.Y;
 
         int x = A.X;
         int y = A.Y;
         while(true) {
-            bool lastloop = x == B.X || y == B.Y;
+            bool lastloop = x == B.X && y == B.Y;
             grid[y, x]++;
-            if (xrising) x++; else x--;
-            if (yrising) y++; else y--;
+            if (!xflat) {
+                if (xrising) x++; else x--;
+            }
+            if (!yflat) {
+                if (yrising) y++; else y--;
+            }
             if (lastloop) break;
-        }
-    }
-
-    private void MarkGridHorizontal(int[,] grid) {
-        if (!IsHorizontal()) return;
-        int x = A.X;
-        int lower;
-        int upper;
-        if (A.Y > B.Y) {
-            lower = B.Y;
-            upper = A.Y;
-        } else {
-            lower = A.Y;
-            upper = B.Y;
-        }
-        for (int y = lower; y <= upper; y++) {
-            grid[y, x]++;
-        }
-    }
-    private void MarkGridVertical(int[,] grid) {
-        if (!IsVertical()) return;
-        int y = A.Y;
-        int lower;
-        int upper;
-        if (A.X > B.X) {
-            lower = B.X;
-            upper = A.X;
-        } else {
-            lower = A.X;
-            upper = B.X;
-        }
-        for (int x = lower; x <= upper; x++) {
-            grid[y, x]++;
         }
     }
 }

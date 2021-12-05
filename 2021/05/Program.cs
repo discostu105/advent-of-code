@@ -4,18 +4,12 @@ var r = new MyReader(File.OpenText("large.txt"));
 using var stopwatch = AutoStopwatch.Start();
 
 var vectors = new List<Vector>();
-int maxx = 0;
-int maxy = 0;
 while (!r.EOF) {
     var vector = r.ReadObject<Vector>();
     vectors.Add(vector);
-    maxx = Math.Max(maxx, vector.A.X);
-    maxx = Math.Max(maxx, vector.B.X);
-    maxy = Math.Max(maxy, vector.A.Y);
-    maxy = Math.Max(maxy, vector.B.Y);
 }
 
-var grid = new int[maxy + 1, maxx + 1];
+var grid = new int[vectors.Max(v => v.MaxY) + 1, vectors.Max(v => v.MaxX) + 1];
 
 foreach (var vector in vectors) {
     vector.MarkGrid(grid);
@@ -60,27 +54,22 @@ class Vector : IParsable {
     internal bool IsHorizontal() => A.X == B.X;
     internal bool IsVertical() => A.Y == B.Y;
     internal bool IsDiagonal() => !IsVertical() && !IsHorizontal();
+    internal int MaxX => Math.Max(A.X, B.X);
+    internal int MaxY => Math.Max(A.X, B.X);
 
     public override string ToString() => $"{A} -> {B}";
 
     internal void MarkGrid(int[,] grid) {
-        bool xrising = A.X < B.X;
-        bool yrising = A.Y < B.Y;
-        bool xflat = A.X == B.X;
-        bool yflat = A.Y == B.Y;
+        int steps = Math.Max(Math.Abs(B.X - A.X), Math.Abs(B.Y - A.Y));
+        int xinc = (B.X - A.X) / steps;
+        int yinc = (B.Y - A.Y) / steps;
 
-        int x = A.X;
-        int y = A.Y;
-        while(true) {
-            bool lastloop = x == B.X && y == B.Y;
+        int x = A.X - xinc;
+        int y = A.Y - yinc;
+        do {
+            x += xinc;
+            y += yinc;
             grid[y, x]++;
-            if (!xflat) {
-                if (xrising) x++; else x--;
-            }
-            if (!yflat) {
-                if (yrising) y++; else y--;
-            }
-            if (lastloop) break;
-        }
+        } while (x != B.X || y != B.Y);
     }
 }

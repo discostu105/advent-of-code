@@ -3,11 +3,11 @@
 string file = "large.txt";
 
 Console.WriteLine("part 1:");
-Crabs(constDistance: true);
+Crabs(constFuel: true);
 Console.WriteLine("part 2:");
-Crabs(constDistance: false);
+Crabs(constFuel: false);
 
-void Crabs(bool constDistance) {
+void Crabs(bool constFuel) {
     var r = new MyReader(File.OpenText(file));
     using var stopwatch = AutoStopwatch.Start();
 
@@ -16,7 +16,7 @@ void Crabs(bool constDistance) {
 
     var minDistance = int.MaxValue;
     for (int pos = 0; pos < positions.Count; pos++) {
-        var distance = positions.Sum(p => FuelCost(p, pos, constDistance));
+        var distance = positions.Sum(p => FuelCost(p, pos, constFuel));
         if (distance < minDistance) minDistance = distance;
     }
 

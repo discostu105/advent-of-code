@@ -1,21 +1,30 @@
 ﻿using utils;
 
-var r = new MyReader(File.OpenText("large.txt"));
-using var stopwatch = AutoStopwatch.Start();
+string file = "large.txt";
 
-var positions = new List<int>();
-while (!r.EOF) positions.Add(r.ReadInt());
+Console.WriteLine("part 1:");
+Crabs(constDistance: true);
+Console.WriteLine("part 2:");
+Crabs(constDistance: false);
 
-var minDistance = int.MaxValue;
-for (int pos = 0; pos < positions.Count; pos++) {
-    var distance = positions.Sum(p => FuelCost(p, pos, true));
-    if (distance < minDistance) minDistance = distance;
-}
+void Crabs(bool constDistance) {
+    var r = new MyReader(File.OpenText(file));
+    using var stopwatch = AutoStopwatch.Start();
 
-Console.WriteLine($"minDistance: {minDistance}");
+    var positions = new List<int>();
+    while (!r.EOF) positions.Add(r.ReadInt());
 
-int FuelCost(int p, int pos, bool constFuel) {
-    var distance = Math.Abs(p - pos);
-    if (constFuel) return distance;
-    return (distance * (distance + 1)) / 2;
+    var minDistance = int.MaxValue;
+    for (int pos = 0; pos < positions.Count; pos++) {
+        var distance = positions.Sum(p => FuelCost(p, pos, constDistance));
+        if (distance < minDistance) minDistance = distance;
+    }
+
+    Console.WriteLine($"minDistance: {minDistance}");
+
+    int FuelCost(int p, int pos, bool constFuel) {
+        var distance = Math.Abs(p - pos);
+        if (constFuel) return distance;
+        return (distance * (distance + 1)) / 2;
+    }
 }

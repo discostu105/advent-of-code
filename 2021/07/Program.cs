@@ -12,14 +12,10 @@ for (int pos = 0; pos < positions.Count; pos++) {
     if (distance < minDistance) minDistance = distance;
 }
 
-Console.WriteLine($"minDistance: {minDistance}");
+Console.WriteLine($"minDistance: {minDistance}"); // 342641
 
 int FuelCost(int p, int pos, bool constFuel) {
     var distance = Math.Abs(p - pos);
     if (constFuel) return distance;
-    int sum = 0;
-    for (int i = 1; i <= distance; i++) {
-        sum += i;
-    }
-    return sum;
+    return (distance * (distance + 1)) / 2;
 }

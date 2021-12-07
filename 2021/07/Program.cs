@@ -12,7 +12,7 @@ for (int pos = 0; pos < positions.Count; pos++) {
     if (distance < minDistance) minDistance = distance;
 }
 
-Console.WriteLine($"minDistance: {minDistance}"); // 342641
+Console.WriteLine($"minDistance: {minDistance}");
 
 int FuelCost(int p, int pos, bool constFuel) {
     var distance = Math.Abs(p - pos);

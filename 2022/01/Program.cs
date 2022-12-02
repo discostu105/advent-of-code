@@ -2,7 +2,14 @@
 
 var r = new MyReader(File.OpenText("small.txt"));
 
-var elves = new SortedList<int, int>();
+// minimal allocations solution
+// just remember top N values
+// keep a sum. if a value enters top N, then adapt the sum (subtract removed value, add new value)
+
+var n = 3;
+var topNCalories = new int[n];
+int smallestIdx = 0;
+var topNCaloriesSum = 0;
 while (!r.EOF)
 {
     var calories = 0;
@@ -11,8 +18,31 @@ while (!r.EOF)
         calories += r.ReadInt();
     }
     r.SkipEOL();
-    elves.Add(calories, calories);
+
+    var currentSmallest = topNCalories[smallestIdx];
+    if (currentSmallest < calories) {
+        topNCalories[smallestIdx] = calories;
+        topNCaloriesSum -= currentSmallest;
+        topNCaloriesSum += calories;
+        smallestIdx = FindSmallestIdx(topNCalories);
+    }
 }
 
-Console.WriteLine("top 1 elve calories: " + (elves.TakeLast(1).Sum(x => x.Value)));
-Console.WriteLine("top 3 elve calories: " + (elves.TakeLast(3).Sum(x => x.Value)));
+int FindSmallestIdx(int[] elves) {
+    var idx = -1;
+    var smallestVal = int.MaxValue;
+    for (int i = 0; i < elves.Length; i++) {
+        if (elves[i] < smallestVal) {
+            idx = i;
+            smallestVal = elves[i];
+        }
+    }
+    return idx;
+}
+
+Console.WriteLine($"top {n} elve calories: " + topNCaloriesSum);
+
+/*
+top 1 elve calories: 75622
+top 3 elve calories: 213159
+*/

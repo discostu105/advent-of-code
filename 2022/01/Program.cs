@@ -9,7 +9,6 @@ var r = new MyReader(File.OpenText("small.txt"));
 var n = 3;
 var topNCalories = new int[n];
 int smallestIdx = 0;
-var topNCaloriesSum = 0;
 while (!r.EOF)
 {
     var calories = 0;
@@ -22,8 +21,6 @@ while (!r.EOF)
     var currentSmallest = topNCalories[smallestIdx];
     if (currentSmallest < calories) {
         topNCalories[smallestIdx] = calories;
-        topNCaloriesSum -= currentSmallest;
-        topNCaloriesSum += calories;
         smallestIdx = FindSmallestIdx(topNCalories);
     }
 }
@@ -40,7 +37,7 @@ int FindSmallestIdx(int[] elves) {
     return idx;
 }
 
-Console.WriteLine($"top {n} elve calories: " + topNCaloriesSum);
+Console.WriteLine($"top {n} elve calories: " + topNCalories.Sum());
 
 /*
 top 1 elve calories: 75622

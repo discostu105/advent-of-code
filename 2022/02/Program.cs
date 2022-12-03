@@ -1,5 +1,4 @@
 ﻿using utils;
-using static System.Formats.Asn1.AsnWriter;
 
 var r = new MyReader(File.OpenText("small.txt"));
 

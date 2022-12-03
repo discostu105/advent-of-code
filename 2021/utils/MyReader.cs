@@ -2,7 +2,7 @@
 
 namespace utils;
 
-public class MyReader {
+public class MyReader : IDisposable {
 	private StreamReader sr;
 
 	public MyReader(StreamReader sr, char[] separators = null) {
@@ -143,6 +143,10 @@ public class MyReader {
 	internal void NextLine() {
 		eol = false;
 	}
+
+    public void Dispose() {
+		this.sr.Dispose();
+    }
 }
 public interface IParsable {
 	void Parse(MyReader r);

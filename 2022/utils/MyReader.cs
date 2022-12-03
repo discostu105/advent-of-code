@@ -83,7 +83,7 @@ public class MyReader {
 				}
 				break;
 			}
-			sb.Append(c);
+            sb.Append(c);
 		}
 		return sb.ToString();
 	}

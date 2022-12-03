@@ -38,7 +38,7 @@
         }
         sum += Priority(badge);
     }
-    Console.WriteLine("part 1 solution: " + sum);
+    Console.WriteLine("part 2 solution: " + sum);
 }
 
 int Priority(char c) {

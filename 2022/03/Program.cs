@@ -45,7 +45,7 @@ static char FindCommonCharacter(string[] groups) {
 }
 
 int Priority(char c) {
-    if (c >= 'A' && c <= 'Z') return (int)c - (int)'A' + 27;
-    if (c >= 'a' && c <= 'z') return (int)c - (int)'a' + 1;
+    if (c >= 'A' && c <= 'Z') return c - 'A' + 27;
+    if (c >= 'a' && c <= 'z') return c - 'a' + 1;
     throw new Exception("invalid char: " + c);
 }

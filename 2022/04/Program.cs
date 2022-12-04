@@ -2,32 +2,23 @@
 
 using var r = new MyReader(File.OpenText("input.txt"), new char[] { '-', ',' });
 
-int sum = 0;
+int overlaps = 0;
+int overlappingPairs = 0;
 while (!r.EOF) {
-    var pair1 = new Pair {
-        From = r.ReadInt(),
-        To = r.ReadInt()
-    };
-    var pair2 = new Pair {
-        From = r.ReadInt(),
-        To = r.ReadInt()
-    };
-    if (pair1.From >= pair2.From && pair1.To <= pair2.To) {
-        Console.WriteLine(pair1 + "," + pair2);
-        sum++;
-    } else if (pair1.From <= pair2.From && pair1.To >= pair2.To) {
-        Console.WriteLine(pair1 + "," + pair2);
-        sum++;
-    }
+    var pair1 = new Pair(r.ReadInt(), r.ReadInt());
+    var pair2 = new Pair(r.ReadInt(), r.ReadInt());
+    if (pair1.From >= pair2.From && pair1.To <= pair2.To) overlaps++;
+    else if (pair1.From <= pair2.From && pair1.To >= pair2.To) overlaps++;
+
+    var a = Enumerable.Range(pair1.From, pair1.To - pair1.From + 1).ToList();
+    var b = Enumerable.Range(pair2.From, pair2.To - pair2.From + 1).ToList();
+    var intersections = a.Intersect(b).Count();
+    Console.WriteLine(pair1 + "," + pair2 + " :: " + intersections);
+    if (intersections > 0) overlappingPairs++;
 }
-Console.WriteLine(sum);
-// 515
+Console.WriteLine("part 1: " + overlaps);
+Console.WriteLine("part 2: " + overlappingPairs);
 
-class Pair {
-    public int From { get; set; }
-    public int To { get; set; }
-
-    public override string ToString() {
-        return $"{From}-{To}";
-    }
+record Pair(int From, int To) {
+    public override string ToString() => $"{From}-{To}";
 }

@@ -1,9 +1,10 @@
 ﻿using utils;
 
-using var r = new MyReader(File.OpenText("input.txt"), new char[] { '[', ']', ' ' });
+using var r = new MyReader(File.OpenText("input.txt"));
 
 int stackcount = -1;
 Stack<char>[] stacks = null;
+var commands = new List<Command>();
 
 while (!r.EOF) {
     var line = r.ReadLine();
@@ -26,34 +27,50 @@ while (!r.EOF) {
         var from = linereader.ReadInt();
         linereader.ReadWord();
         var to = linereader.ReadInt();
-
-        var temp = new Stack<char>();
-        for (int i = 0; i < count; i++) {
-            var crate = stacks[from - 1].Pop();
-            // stacks[to - 1].Push(crate); // from part 1)
-            temp.Push(crate);
-        }
-        while (temp.Count > 0) {
-            stacks[to - 1].Push(temp.Pop());
-        }
-    } else {
-        // skip
-
-        for (int i = 0; i < stackcount; i++) {
-            stacks[i] = ReverseStack(stacks[i]);
-        }
+        commands.Add(new Command(from, to, count));
     }
 }
 
+// reverse all
+for (int i = 0; i < stackcount; i++) {
+    stacks[i] = ReverseStack(stacks[i]);
+}
+
+RunCrane9001(commands, stacks);
+
+// print result
 foreach (var stack in stacks) {
     Console.Write(stack.Peek());
 }
 
+// part 1
+static void RunCrane9000(List<Command> commands, Stack<char>[] stacks) {
+    foreach (var cmd in commands) {
+        for (int i = 0; i < cmd.count; i++) {
+            var crate = stacks[cmd.from - 1].Pop();
+            stacks[cmd.to - 1].Push(crate); // from part 1)
+        }
+    }
+}
+
+// part 2
+static void RunCrane9001(List<Command> commands, Stack<char>[] stacks) {
+    foreach (var cmd in commands) {
+        var temp = new Stack<char>();
+        for (int i = 0; i < cmd.count; i++) {
+            var crate = stacks[cmd.from - 1].Pop();
+            temp.Push(crate);
+        }
+        while (temp.Count > 0) {
+            stacks[cmd.to - 1].Push(temp.Pop());
+        }
+    }
+}
+
 static Stack<char> ReverseStack(Stack<char> input) {
     var temp = new Stack<char>();
-
-    while (input.Count != 0)
-        temp.Push(input.Pop());
-
+    while (input.Count != 0) temp.Push(input.Pop());
     return temp;
 }
+
+record Command(int from, int to, int count);

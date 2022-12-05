@@ -13,6 +13,15 @@ public class MyReader : IDisposable {
             this.Separators = new char[] { ' ', ',' };
     }
 
+    public static MyReader FromString(string s, char[] separators = null) {
+        var stream = new MemoryStream();
+        var writer = new StreamWriter(stream);
+        writer.Write(s);
+        writer.Flush();
+        stream.Position = 0;
+        return new MyReader(new StreamReader(stream), separators);
+    }
+
     public string ReadWord() {
         SkipSeparators();
         eol = false;

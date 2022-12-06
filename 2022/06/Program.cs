@@ -4,7 +4,7 @@ using var r = new MyReader(File.OpenText("input.txt"));
 
 while (!r.EOF) {
     var line = r.ReadLine();
-	var dupIdx = DuplicateIndex(line, 4);
+	var dupIdx = DuplicateIndex(line, 14);
 	Console.WriteLine(dupIdx);
 }
 

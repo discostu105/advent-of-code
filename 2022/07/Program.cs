@@ -26,7 +26,6 @@ while (!r.EOF) {
             foreach (var key in dirsizes.Keys) {
                 if (listdir.StartsWith(key)) dirsizes[key] += int.Parse(line.Split(' ')[0]);
             }
-            //dirsizes[listdir] += int.Parse(line.Split(' ')[0]);
         }
     } else if (line == "$ ls") {
         listdir = curdir;
@@ -38,9 +37,12 @@ foreach (var item in dirsizes) {
     Console.WriteLine(item);
     if (item.Value <= 100_000) sum += item.Value;
 }
-Console.WriteLine(sum);
+Console.WriteLine("part 1: " + sum);
 
-// 572069967 is too high!
+int todelete = 30000000 - (70000000 - dirsizes["/"]);
+Console.WriteLine(todelete);
+var x = dirsizes.Where(kvp => kvp.Value > todelete).OrderBy(kvp => kvp.Value).First();
+Console.WriteLine(x);
 
 string ExitDir(Stack<string> dirstack) {
     dirstack.Pop();

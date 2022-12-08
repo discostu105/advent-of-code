@@ -17,9 +17,7 @@ int FindNonDuplicateIndex(string s, int buffersize) {
 
 bool HasDuplicateCharacters(string s) {
     for (int i = 0; i < s.Length; i++) {
-        for (int j = i + 1; j < s.Length; j++) {
-            if (s[i] == s[j]) return true;
-        }
+        if (s[(i + 1)..].Contains(s[i])) return true;
     }
     return false;
 }

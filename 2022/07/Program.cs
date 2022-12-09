@@ -17,7 +17,7 @@ while (!r.EOF) {
         var dir = line.Split(' ')[2];
         curdir = EnterDir(dir, curdir, dirstack);
         if (!dirsizes.ContainsKey(curdir)) dirsizes.Add(curdir, 0);
-    }  else if (line.StartsWith("dir ")) {
+    } else if (line.StartsWith("dir ")) {
         if (listdir != "") {
             dirsizes.Add(listdir + line.Split(' ')[1] + "/", 0);
         }

@@ -5,33 +5,36 @@ using var r = new MyReader(File.OpenText("input.txt"));
 int cycle = 0;
 int x = 1;
 int signalStrengthSum = 0;
+var checkpoints = new List<int> { 20, 60, 100, 140, 180, 220 };
 while (!r.EOF) {
     var instr = r.ReadWord();
     if (instr == "noop") {
-        cycle++;
-        signalStrengthSum += CheckSignalStrength(cycle, x);
+        signalStrengthSum += CheckSignalStrength(ref cycle, x, checkpoints);
     } else if (instr == "addx") {
         var num = r.ReadInt();
-        cycle++;
-        signalStrengthSum += CheckSignalStrength(cycle, x);
-        cycle++;
-        signalStrengthSum += CheckSignalStrength(cycle, x);
+        signalStrengthSum += CheckSignalStrength(ref cycle, x, checkpoints);
+        signalStrengthSum += CheckSignalStrength(ref cycle, x, checkpoints);
         x += num;
     }
 }
 
-Console.WriteLine("X: " + x);
 Console.WriteLine("signal strength sum: " + signalStrengthSum);
 
-static int CheckSignalStrength(int cycle, int x) {
-    if (cycle == 20 ||
-        cycle == 60 ||
-        cycle == 100 ||
-        cycle == 140 ||
-        cycle == 180 ||
-        cycle == 220) {
-        Console.WriteLine("cycle: " + cycle + ", x: " + x + ", signalstr: " + cycle * x);
-        return cycle * x;
-    }
+static int CheckSignalStrength(ref int cycle, int x, List<int> checkpoints) {
+    cycle++;
+    WriteToCRT(cycle, x);
+    if (checkpoints.Contains(cycle)) return cycle * x;
     return 0;
+}
+
+static void WriteToCRT(int cycle, int x) {
+    int pos = cycle % 40;
+    if (x > 0 && pos == 0) pos = 40;
+    if (pos >= x && pos < x+3) {
+        Console.Write("#");
+    } else {
+        Console.Write(".");
+
+    }
+    if (cycle % 40 == 0) Console.WriteLine();
 }

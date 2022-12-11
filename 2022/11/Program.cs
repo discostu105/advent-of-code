@@ -10,7 +10,7 @@ while (!r.EOF) {
         linereader.Skip("Monkey");
         int monkeyIndex = linereader.ReadInt();
         line = r.ReadLine();
-        var startingItems = line.Substring("  Starting items:".Length).Replace(" ", "").Split(',').Select(x => int.Parse(x)).ToList();
+        var startingItems = line.Substring("  Starting items:".Length).Replace(" ", "").Split(',').Select(x => long.Parse(x)).ToList();
 
         var operation = Operation.Parse(r.ReadLine().Substring("  Operation: new = ".Length));
         int testDivisibleBy = int.Parse(r.ReadLine().Substring("  Test: divisible by ".Length));
@@ -21,17 +21,25 @@ while (!r.EOF) {
 }
 
 PrintMonkeyItems(monkeys);
-var inspectionCounts = PlayRounds(monkeys, 20).OrderByDescending(x => x).ToList();
+var leastCommonMultiple = FindLeastCommonMultiple(monkeys.Select(m => m.TestDivisibleBy).ToList());
+var inspectionCounts = PlayRounds(monkeys, 10000, 1, leastCommonMultiple).OrderByDescending(x => x).ToList();
+Console.WriteLine("lcm: " + leastCommonMultiple);
+Console.WriteLine(inspectionCounts[0]);
+Console.WriteLine(inspectionCounts[1]);
 Console.WriteLine(inspectionCounts[0] * inspectionCounts[1]);
 
-int[] PlayRounds(List<Monkey> monkeys, int rounds) {
-    var inspectionCounts = new int[monkeys.Count];
+long[] PlayRounds(List<Monkey> monkeys, int rounds, long worryDeclineRate, int leastCommonMultiple) {
+    var inspectionCounts = new long[monkeys.Count];
     for (int i = 0; i < rounds; i++) {
+        // Console.WriteLine("Round " + i);
         foreach (var monkey in monkeys) {
-            var itemCopy = new List<int>(monkey.Items);
-            monkey.Items = new List<int>(); // empty current item list
+            var itemCopy = new List<long>(monkey.Items);
+            monkey.Items = new List<long>(); // empty current item list
             foreach (var item in itemCopy) {
-                var newItem = monkey.Operation.Calc(item) / 3;
+                var newItem = monkey.Operation.Calc(item) / worryDeclineRate;
+
+                newItem %= leastCommonMultiple;
+
                 if (newItem % monkey.TestDivisibleBy == 0) {
                     monkeys[monkey.TrueMonkeyIdx].Items.Add(newItem);
                 } else {
@@ -42,7 +50,7 @@ int[] PlayRounds(List<Monkey> monkeys, int rounds) {
 
         }
 
-        PrintMonkeyItems(monkeys);
+        // PrintMonkeyItems(monkeys);
     }
     return inspectionCounts;
 }
@@ -54,11 +62,30 @@ static void PrintMonkeyItems(List<Monkey> monkeys) {
     Console.WriteLine();
 }
 
+int FindLeastCommonMultiple(List<int> list) {
+    return LcmOfArray(list, 0);
+}
+
+static int gcd(int a, int b) {
+    if (a == 0)
+        return b;
+    return gcd(b % a, a);
+}
+
+static int LcmOfArray(List<int> arr, int idx) {
+    if (idx == arr.Count - 1) {
+        return arr[idx];
+    }
+    int a = arr[idx];
+    int b = LcmOfArray(arr, idx + 1);
+    return (a * b / gcd(a, b));
+}
+
 record class Monkey(int Index, Operation Operation, int TestDivisibleBy, int TrueMonkeyIdx, int FalseMonkeyIdx) {
-    public List<int> Items { get; set; }
+    public List<long> Items { get; set; }
 }
 record Operation(string left, string operand, string right) {
-    public int Calc(int old) {
+    public long Calc(long old) {
         var leftVal = left == "old" ? old : int.Parse(left);
         var rightVal = right == "old" ? old : int.Parse(right);
         if (operand == "+") return leftVal + rightVal;

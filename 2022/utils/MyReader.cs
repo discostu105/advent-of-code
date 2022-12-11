@@ -56,7 +56,7 @@ public class MyReader : IDisposable {
         }
     }
 
-    private void SkipSeparators() {
+    public void SkipSeparators() {
         char nextch = (char)sr.Peek();
         while (Separators.Contains(nextch)) {
             sr.Read(); // consume all separators

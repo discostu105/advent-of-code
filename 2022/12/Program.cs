@@ -6,35 +6,49 @@ using var r = new MyReader(File.OpenText("input.txt"));
 
 var grid = new List<List<char>>();
 
-int y = 0;
 var start = new Point();
-var end = new Point();
-while (!r.EOF) {
-    var line = r.ReadLine();
-    var row = new List<char>();
-    for (int x = 0; x < line.Length; x++) {
-        var ch = line[x];
-        if (ch == 'S') {
-            start = new Point(x, y);
-            ch = 'a';
-        } else if (ch == 'E') {
-            end = new Point(x, y);
-            ch = 'z';
+var end = new Point(); 
+{
+    int y = 0;
+    while (!r.EOF) {
+        var line = r.ReadLine();
+        var row = new List<char>();
+        for (int x = 0; x < line.Length; x++) {
+            var ch = line[x];
+            if (ch == 'S') {
+                start = new Point(x, y);
+                ch = 'a';
+            } else if (ch == 'E') {
+                end = new Point(x, y);
+                ch = 'z';
+            }
+            row.Add(ch);
         }
-        row.Add(ch);
+        grid.Add(row);
+        y++;
     }
-    grid.Add(row);
-    y++;
 }
 
-astar(grid, start, end);
+int shortest = astar(grid, start, end);
+Console.WriteLine("part 1: " + shortest); // 534
 
-Console.WriteLine();
-// 540 is too high
-// 536 is also wrong
-// 534 is correct!
 
-void astar(List<List<char>> grid, Point start, Point end) {
+// part 2
+int minShortest = int.MaxValue;
+for (int y = 0; y < grid.Count; y++) {
+    for (int x = 0; x < grid[y].Count; x++) {
+        if (grid[y][x] == 'a') {
+            Console.WriteLine("try " + new Point(x, y));
+            var pathLength = astar(grid, new Point(x, y), end, minShortest);
+            minShortest = Math.Min(pathLength, minShortest);
+        }
+    }
+}
+Console.WriteLine("part 2: " + minShortest); // 525 on {X=0,Y=29}
+
+
+
+int astar(List<List<char>> grid, Point start, Point end, int abortOnPathLength = int.MaxValue) {
     var openlist = new List<Node>();
     var closedlist = new List<Node>();
 
@@ -45,21 +59,22 @@ void astar(List<List<char>> grid, Point start, Point end) {
 
     while (openlist.Count > 0) {
         // PrintOpenList(grid, openlist, closedlist);
-        var currentNode = GetMinimalNode(openlist);
+        var currentNode = GetMinimalNode(openlist.ToList());
+
+        if (CountSteps(currentNode) >= abortOnPathLength) return int.MaxValue;
         
-        if (i % 1000 == 0) PrintPath(grid, currentNode, start, end);
+        //if (i % 1000 == 0) PrintPath(grid, currentNode, start, end);
         i++;
 
         openlist.Remove(currentNode);
         closedlist.Add(currentNode);
 
         if (currentNode.Position == end) {
-            Console.WriteLine("Wohooo");
-            PrintOpenList(grid, openlist.ToList(), closedlist.ToList());
+            // PrintOpenList(grid, openlist.ToList(), closedlist.ToList());
             PrintPath(grid, currentNode, start, end);
             var x = CountSteps(currentNode);
             Console.WriteLine(x);
-            return;
+            return x;
         }
 
         var children = GetNeighbors(grid, currentNode.Position).ToList();
@@ -68,25 +83,22 @@ void astar(List<List<char>> grid, Point start, Point end) {
                 continue;
             }
 
-            if (currentNode.Parent != null && childPos == currentNode.Parent.Position) {
-                continue;
-            }
-
             var childNode = new Node(Position: childPos) {
                 Ch = grid[childPos.Y][childPos.X],
                 Parent = currentNode,
                 G = currentNode.G + 1,
-                H = Math.Abs(currentNode.Position.X - end.X) + Math.Abs(currentNode.Position.Y - end.Y)
+                H = (Math.Abs(currentNode.Position.X - end.X) + Math.Abs(currentNode.Position.Y - end.Y))
             };
 
-            var childNodeOpenList = openlist.FirstOrDefault(x => x.Position == childPos);
-            if (childNodeOpenList != null && childNode.G >= childNodeOpenList.G) {
+            if (openlist.Any(x => x.Position == childPos && x.G <= childNode.G)) {
                 continue;
             }
 
             openlist.Add(childNode);
+
         }
     }
+    return int.MaxValue;
 }
 
 Node GetMinimalNode(List<Node> openlist) {
@@ -188,8 +200,8 @@ class Node {
     public override bool Equals(object? obj) {
         return
             ((Node)obj).Position == this.Position
-            //&& ((Node)obj).Parent == this.Parent &&
-            //&& ((Node)obj).G == this.G
+            && ((Node)obj).Parent?.Position == this.Parent?.Position
+            // && ((Node)obj).G == this.G
             ;
     }
     public override int GetHashCode() {

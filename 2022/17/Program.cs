@@ -87,7 +87,6 @@ class Shape {
     // coordinate in cave of bottom-left
     public Point CaveCoordinates { get; set; }
     public char Symbol { get; init; }
-    //public string[] Sprite { get; init; }
 
     public bool[,] Rows;
 
@@ -115,7 +114,6 @@ class Shape {
 
 class Cave {
     private int width;
-    //public Dictionary<int, BitArray> CaveRows = new Dictionary<int, BitArray>();
     private int maxY = 0;
     private int[] topY;
     public int Height { get => maxY; }
@@ -130,22 +128,6 @@ class Cave {
     }
 
     internal void FixateShape(Shape shape) {
-        //foreach(var row in shape.Rows) {
-        //    var y = shape.CaveCoordinates.Y + row.Key;
-        //    if (!CaveRows.ContainsKey(y)) {
-        //        CaveRows.Add(y, new BitArray(7, false));
-        //    }
-        //    for (int x = 0; x < row.Value.Count; x++) {
-        //        CaveRows[y][shape.CaveCoordinates.X + x] = row.Value[x];
-        //    }
-        //    if (CaveRows[y].Cast<bool>().All(x => x)) {
-        //        //Console.WriteLine("removing rows below " + y);
-        //        foreach (var rowToRemove in CaveRows.Keys.Where(row => row < y).ToList()) {
-        //            CaveRows.Remove(rowToRemove);
-        //        }
-        //    }
-        //}
-        //maxY = Math.Max(maxY, shape.CaveCoordinates.Y + shape.Height);
         for (int shapeY = 0; shapeY < shape.Height; shapeY++) {
             var caveY = shape.CaveCoordinates.Y + shapeY;
             for (int shapeX = 0; shapeX < shape.Width; shapeX++) {
@@ -155,8 +137,6 @@ class Cave {
                 }
             }
         }
-        //maxY = Math.Max(maxY, shape.CaveCoordinates.Y + shape.Height);
-
         Normalize();
         maxY = topY.Max();
     }
@@ -174,8 +154,6 @@ class Cave {
     }
 
     internal bool TryFall(Shape shape) {
-        //Console.WriteLine("Falling");
-
         var fallCoordinates = new Point(shape.CaveCoordinates.X, shape.CaveCoordinates.Y - 1);
         bool canFall = (fallCoordinates.Y - 1 > maxY) || TestPosition(shape, fallCoordinates);
         if (!canFall) return false;
@@ -184,10 +162,8 @@ class Cave {
     }
 
     private bool TestPosition(Shape shape, Point fallCoordinates) {
-        //if (fallCoordinates.Y < heightOffset) return false;
         if (fallCoordinates.X < 0 || fallCoordinates.X + shape.Width > width) return false;
         if (fallCoordinates.Y < 0) return false;
-        //if (HitBlocked(fallCoordinates)) return false;
         var movedShape = new Shape(shape.Symbol, shape.Rows) {
             CaveCoordinates = fallCoordinates
         };
@@ -201,7 +177,6 @@ class Cave {
     }
 
     internal bool TryPush(Shape shape, char direction) {
-        //Console.WriteLine("Pushing towards " + direction);
         var pushCoordinates = direction == '>'
             ? new Point(shape.CaveCoordinates.X + 1, shape.CaveCoordinates.Y)
             : new Point(shape.CaveCoordinates.X - 1, shape.CaveCoordinates.Y);
@@ -216,7 +191,6 @@ class Cave {
     }
 
     private Point FindSpawnPosition(Shape shape) {
-        //if (CaveRows.Count == 0) return new Point(2, 3);
         return new Point(2, maxY + 3);
     }
 

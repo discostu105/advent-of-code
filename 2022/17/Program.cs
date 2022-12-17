@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 
-var input = File.ReadAllText("input.txt");
+var input = File.ReadAllText("test.txt");
 
 var plusShape = new Shape('+', new bool[,] {
     { false, true, false },
@@ -37,41 +37,37 @@ var squareShape = new Shape('O', new bool[,] {
 Console.WriteLine(Simulate(input, 2022));
 Console.WriteLine(Simulate(input, 1000000000000));
 
-int Simulate(string moves, long numberOfShapes) {
+long Simulate(string moves, long numberOfShapes) {
     var maxMoves = moves.Length;
     var cave = new Cave(7);
     var sw = new Stopwatch();
     sw.Start();
-    int reportInterval = 10000000;
+    int reportInterval = 1000000;
 
     var movePos = 0;
     var shapes = EnumerateShapes().GetEnumerator();
+    int cacheHits = 0;
     for (long i = 0; i < numberOfShapes; i++) {
         shapes.MoveNext();
         var shape = shapes.Current;
+
         cave.SpawnShape(shape);
         //cave.Print(shape);
-        while (true) {
-            cave.TryPush(shape, moves[movePos++]);
-            movePos %= maxMoves;
-            //cave.Print(shape);
-            if (!cave.TryFall(shape)) break;
-            //cave.Print(shape);
-        }
-        //cave.Print(shape);
-        cave.FixateShape(shape);
+        cave.DropShape(moves, maxMoves, ref movePos, ref cacheHits, shape);
         //cave.Print();
         if (i % reportInterval == 0 || i == numberOfShapes - 1) {
             var elapsed = sw.Elapsed;
             sw.Restart();
             var remaining = TimeSpan.FromSeconds(elapsed.TotalSeconds * ((double)numberOfShapes / reportInterval));
-            Console.WriteLine($"At block {i}, height is {cave.Height}. Took {elapsed}. Remaining time: {remaining}.");
+            var cacheHitRate = Math.Round(cacheHits / (double)i, 4);
+            Console.WriteLine($"At block {i}, height is {cave.Height}, actualheight: {cave.ActualHeight}. Took {elapsed}. Remaining time: {remaining}. cacheHitRate: {cacheHitRate}, cacheSize: {cave.cache.Count}");
 
         }
     }
     cave.Print();
     return cave.ActualHeight;
 }
+
 
 IEnumerable<Shape> EnumerateShapes() {
     while (true) {
@@ -83,9 +79,40 @@ IEnumerable<Shape> EnumerateShapes() {
     }
 }
 
+class CacheKey {
+
+    public CacheKey(char shapeSymbol, int movePos, long[] caveTopY) {
+        ShapeSymbol = shapeSymbol;
+        MovePos = movePos;
+        CaveTopY = caveTopY;
+    }
+
+    public char ShapeSymbol { get; }
+    public int MovePos { get; }
+    public long[] CaveTopY { get; }
+
+    public override int GetHashCode() {
+        var hash = new HashCode();
+        hash.Add(ShapeSymbol);
+        hash.Add(MovePos);
+        foreach (var item in CaveTopY) hash.Add(item);
+        return hash.ToHashCode();
+    }
+
+    public override bool Equals(object? obj) {
+        var other = obj as CacheKey;
+        if (other == null) return false;
+        return this.ShapeSymbol == other.ShapeSymbol &&
+            this.MovePos == other.MovePos &&
+            this.CaveTopY.SequenceEqual(other.CaveTopY);
+    }
+}
+record CacheEntry(long[] newCaveTopY, long normalizeYValue, int usedMoves);
+
 class Shape {
     // coordinate in cave of bottom-left
-    public Point CaveCoordinates { get; set; }
+    public long CaveX { get; set; }
+    public long CaveY { get; set; }
     public char Symbol { get; init; }
 
     public bool[,] Rows;
@@ -101,75 +128,115 @@ class Shape {
     }
 
 
-    public bool HitLocal(int x, int y) {
+    public bool HitLocal(long x, long y) {
         if (x < 0 || x >= Width) return false;
         if (y < 0 || y >= Height) return false;
         return Rows[y, x];
     }
 
-    public bool HitGlobal(int x, int y) {
-        return HitLocal(x - CaveCoordinates.X, y - CaveCoordinates.Y);
+    public bool HitGlobal(long x, long y) {
+        return HitLocal(x - CaveX, y - CaveY);
     }
 }
 
+
 class Cave {
+
+    public Dictionary<CacheKey, CacheEntry> cache = new Dictionary<CacheKey, CacheEntry>();
     private int width;
-    private int maxY = 0;
-    private int[] topY;
-    public int Height { get => maxY; }
+    private long maxY = 0;
+    private long[] topY;
+    public long Height { get => maxY; }
 
-    private int normalizedY = 0;
+    private long normalizedY = 0;
 
-    public int ActualHeight { get => maxY + normalizedY; }
+    public long ActualHeight { get => maxY + normalizedY; }
 
     public Cave(int width) {
         this.width = width;
-        this.topY = new int[width];
+        this.topY = new long[width];
+    }
+
+    public void DropShape(string moves, int maxMoves, ref int movePos, ref int cacheHits, Shape shape) {
+        var topYCopy = new long[width];
+        Array.Copy(topY, topYCopy, width);
+        var cacheKey = new CacheKey(shape.Symbol, movePos, topYCopy);
+        
+        if (cache.ContainsKey(cacheKey)) {
+            var cacheEntry = cache[cacheKey];
+            topY = cacheEntry.newCaveTopY.ToArray();
+            normalizedY += cacheEntry.normalizeYValue;
+            maxY = topY.Max();
+            movePos += cacheEntry.usedMoves;
+            movePos %= maxMoves;
+            cacheHits++;
+        } else {
+            var normalizedYBefore = normalizedY;
+            var usedMoves = 0;
+            while (true) {
+                TryPush(shape, moves[movePos++]);
+                usedMoves++;
+                movePos %= maxMoves;
+                //cave.Print(shape);
+                if (!TryFall(shape)) break;
+                //cave.Print(shape);
+            }
+            //cave.Print(shape);
+            FixateShape(shape);
+
+            var cacheEntry = new CacheEntry(topY.ToArray(), normalizedY - normalizedYBefore, usedMoves);
+            cache.Add(cacheKey, cacheEntry);
+        }
     }
 
     internal void FixateShape(Shape shape) {
         for (int shapeY = 0; shapeY < shape.Height; shapeY++) {
-            var caveY = shape.CaveCoordinates.Y + shapeY;
+            var caveY = shape.CaveY + shapeY;
             for (int shapeX = 0; shapeX < shape.Width; shapeX++) {
                 if (shape.Rows[shapeY, shapeX]) {
-                    var caveX = shape.CaveCoordinates.X + shapeX;
+                    var caveX = shape.CaveX + shapeX;
                     topY[caveX] = Math.Max(topY[caveX], caveY + 1);
                 }
             }
         }
-        Normalize();
+        var normalizeValue = GetNormalizeValue();
+        NormalizeBy(normalizeValue);
         maxY = topY.Max();
     }
 
-    private void Normalize() {
-        var minY = topY.Min();
+    private long GetNormalizeValue() {
+        return topY.Min();
+    }
+
+    private void NormalizeBy(long normalizeValue) {
         for (int x = 0; x < width; x++) {
-            topY[x] -= minY;
+            topY[x] -= normalizeValue;
         }
-        normalizedY += minY;
+        normalizedY += normalizeValue;
     }
 
     internal void SpawnShape(Shape shape) {
-        shape.CaveCoordinates = FindSpawnPosition(shape);
+        (shape.CaveX, shape.CaveY) = FindSpawnPosition(shape);
     }
 
     internal bool TryFall(Shape shape) {
-        var fallCoordinates = new Point(shape.CaveCoordinates.X, shape.CaveCoordinates.Y - 1);
-        bool canFall = (fallCoordinates.Y - 1 > maxY) || TestPosition(shape, fallCoordinates);
+        var fallCoordinates = (shape.CaveX, CaveY: shape.CaveY - 1);
+        bool canFall = (fallCoordinates.CaveY - 1 > maxY) || TestPosition(shape, fallCoordinates);
         if (!canFall) return false;
         ApplyShapePosition(shape, fallCoordinates);
         return true;
     }
 
-    private bool TestPosition(Shape shape, Point fallCoordinates) {
+    private bool TestPosition(Shape shape, (long X, long Y) fallCoordinates) {
         if (fallCoordinates.X < 0 || fallCoordinates.X + shape.Width > width) return false;
         if (fallCoordinates.Y < 0) return false;
         var movedShape = new Shape(shape.Symbol, shape.Rows) {
-            CaveCoordinates = fallCoordinates
+            CaveX = fallCoordinates.X,
+            CaveY = fallCoordinates.Y
         };
         for (int y = 0; y < shape.Height; y++) {
             for (int x = 0; x < shape.Width; x++) {
-                if (shape.HitLocal(x, y) && !this.IsFree(movedShape.CaveCoordinates.X + x, movedShape.CaveCoordinates.Y + y))
+                if (shape.HitLocal(x, y) && !this.IsFree(movedShape.CaveX + x, movedShape.CaveY + y))
                     return false;
             }
         }
@@ -178,29 +245,30 @@ class Cave {
 
     internal bool TryPush(Shape shape, char direction) {
         var pushCoordinates = direction == '>'
-            ? new Point(shape.CaveCoordinates.X + 1, shape.CaveCoordinates.Y)
-            : new Point(shape.CaveCoordinates.X - 1, shape.CaveCoordinates.Y);
+            ? (shape.CaveX + 1, shape.CaveY)
+            : (shape.CaveX - 1, shape.CaveY);
         bool canPush = TestPosition(shape, pushCoordinates);
         if (!canPush) return false;
         ApplyShapePosition(shape, pushCoordinates);
         return true;
     }
 
-    private void ApplyShapePosition(Shape shape, Point fallCoordinates) {
-        shape.CaveCoordinates = fallCoordinates;
+    private void ApplyShapePosition(Shape shape, (long X, long Y) fallCoordinates) {
+        shape.CaveX = fallCoordinates.X;
+        shape.CaveY = fallCoordinates.Y;
     }
 
-    private Point FindSpawnPosition(Shape shape) {
-        return new Point(2, maxY + 3);
+    private (long x, long y) FindSpawnPosition(Shape shape) {
+        return (2, maxY + 3);
     }
 
     internal void Print(Shape shape = null) {
         Console.WriteLine("TopY: " + string.Join(", ", topY));
 
-        var height = shape == null ? this.Height : Math.Max(this.Height, shape.CaveCoordinates.Y + shape.Height);
-        for (int y = height - 1; y >= 0; y--) {
+        var height = shape == null ? this.Height : Math.Max(this.Height, shape.CaveY + shape.Height);
+        for (long y = height - 1; y >= 0; y--) {
             Console.Write('|');
-            for (int x = 0; x < width; x++) {
+            for (long x = 0; x < width; x++) {
                 if (shape != null && shape.HitGlobal(x, y)) {
                     Console.Write(shape.Symbol);
                 } else if (!IsFree(x, y)) {
@@ -220,7 +288,7 @@ class Cave {
         Console.WriteLine();
     }
 
-    private bool IsFree(int x, int y) {
+    private bool IsFree(long x, long y) {
         return topY[x] <= y;
     }
 }

@@ -1,56 +1,49 @@
-﻿using System.Drawing;
+﻿using System.Collections;
+using System.Diagnostics;
+using System.Drawing;
+using System.Linq;
+using System.Text;
 
 var input = File.ReadAllText("input.txt");
-var maxMoves = input.Length;
-var cave = new Cave(7);
 
-var n = 2022;
-var movePos = 0;
-var shapes = EnumerateShapes().GetEnumerator();
-for (int i = 0; i < n; i++) {
-    shapes.MoveNext();
-    var shape = shapes.Current;
-    cave.SpawnShape(shape);
-    //cave.Print();
-    while (true) {
-        cave.TryPush(shape, input[movePos++]);
-        movePos %= maxMoves;
+Console.WriteLine(Simulate(input, 2022));
+Console.WriteLine(Simulate(input, 1000000000000));
+
+int Simulate(string moves, long numberOfShapes) {
+    var maxMoves = moves.Length;
+    var cave = new Cave(7);
+    var sw = new Stopwatch();
+    sw.Start();
+    int reportInterval = 10000;
+
+    var movePos = 0;
+    var shapes = EnumerateShapes().GetEnumerator();
+    for (long i = 0; i < numberOfShapes; i++) {
+        shapes.MoveNext();
+        var shape = shapes.Current;
+        cave.SpawnShape(shape);
         //cave.Print();
-        if (!cave.TryFall(shape)) break;
+        while (true) {
+            cave.TryPush(shape, moves[movePos++]);
+            movePos %= maxMoves;
+            //cave.Print();
+            if (!cave.TryFall(shape)) break;
+            //cave.Print();
+        }
         //cave.Print();
+        if (i % 100 == 0) cave.Optimize();
+        //cave.Print();
+        if (i % reportInterval == 0) {
+            var elapsed = sw.Elapsed;
+            sw.Restart();
+            var remaining = TimeSpan.FromSeconds(elapsed.TotalSeconds * ((double)numberOfShapes / reportInterval));
+            Console.WriteLine($"At block {i}, height is {cave.Height}. Took {elapsed}. Remaining time: {remaining}.");
+
+        }
     }
+    //cave.Print();
+    return cave.Height;
 }
-cave.Print();
-Console.WriteLine(cave.Height);
-
-//var shape = Shape.NewDash();
-//cave.SpawnShape(shape);
-//cave.Print();
-
-//cave.TryPush(shape, '<');
-//cave.Print();
-
-//cave.TryFall(shape);
-//cave.Print();
-
-//cave.TryPush(shape, '<');
-//cave.Print();
-//cave.TryPush(shape, '<');
-//cave.Print();
-
-//cave.TryFall(shape);
-//cave.Print();
-
-//cave.TryFall(shape);
-//cave.Print();
-
-//cave.TryFall(shape);
-//cave.Print();
-
-
-//var shape2 = Shape.NewSquare();
-//cave.SpawnShape(shape2);
-//cave.Print();
 
 IEnumerable<Shape> EnumerateShapes() {
     while (true) {
@@ -66,9 +59,11 @@ class Shape {
     // coordinate in cave of bottom-left
     public Point CaveCoordinates { get; set; }
     public char Symbol { get; init; }
-    public string[] Sprite { get; init; }
-    public int Width { get => Sprite[0].Length; }
-    public int Height { get => Sprite.Length; }
+    //public string[] Sprite { get; init; }
+
+    private Dictionary<int, BitArray> Rows = new Dictionary<int, BitArray>();
+    public int Width { get => Rows[0].Length; }
+    public int Height { get => Rows.Coun; }
 
     public Shape(char symbol, string[] sprite) {
         Symbol = symbol;
@@ -106,7 +101,7 @@ class Shape {
     public bool HitLocal(Point coord) {
         if (coord.X < 0 || coord.X >= Width) return false;
         if (coord.Y < 0 || coord.Y >= Height) return false;
-        return Sprite[coord.Y][coord.X] == '#';
+        return Rows[coord.Y][coord.X];
     }
 
     public bool HitGlobal(Point coord) {
@@ -117,11 +112,80 @@ class Shape {
 class Cave {
     private int width;
     private List<Shape> shapes = new List<Shape>();
+    private Dictionary<int, BitArray> rows = new Dictionary<int, BitArray>();
 
-    public int Height { get => shapes.Max(s => s.CaveCoordinates.Y + s.Height); }
+    public int Height { get => shapes.Max(s => s.CaveCoordinates.Y + s.Height) + heightOffset; }
 
     public Cave(int width) {
         this.width = width;
+    }
+
+    // remove all shapes. instead initialize a matrix of already blocked coordinates
+    // if a line is fully blocked, assume everything below is "unreachable", so does not need to be stored ("heightOffset")
+    internal void Optimize() {
+        //var sprite = new List<char[]>();
+
+        //for (int y = Height; y >= 0; y--) {
+        //    var line = new char[width];
+        //    for (int x = 0; x < width; x++) {
+        //        if (!IsFree(null, new Point(x, y))) {
+        //            line[x] = '#';
+        //        } else {
+        //            line[x] = '.';
+        //        }
+        //    }
+        //    sprite.Add(line);
+        //    if (line.All(x => x == '#')) {
+        //        //Console.WriteLine(" ---- CUTOFF ---- ");
+        //        break;
+        //    }
+        //}
+        //sprite.Reverse();
+        var blocked = new HashSet<Point>();
+        //var mainshape = shapes.SingleOrDefault(x => x.Symbol == '#');
+        foreach(var shape in shapes) {
+            //if (shape == mainshape) continue;
+            for (int x = 0; x < shape.Width; x++) {
+                for (int y = 0; y < shape.Height; y++) {
+                    if (shape.HitLocal(new Point(x, y))) blocked.Add(new Point(x + shape.CaveCoordinates.X, y + shape.CaveCoordinates.Y));
+                }
+            }
+        }
+
+        var maxX = blocked.Max(coord => coord.X);
+        var minX = blocked.Min(coord => coord.X);
+        var maxY = blocked.Max(coord => coord.Y);
+        var minY = blocked.Min(coord => coord.Y);
+
+        if (maxY - minY < 0) return;
+
+        var sprite = new string[maxY - minY + 1];
+        for (int y = minY; y < maxY - minY + 1; y++) {
+            var sb = new StringBuilder(maxX + 1);
+            for (int x = 0; x < width; x++) {
+                sb.Append(blocked.Contains(new Point(x, y)) ? '#' : '.');
+            }
+            sprite[y] = sb.ToString();
+        }
+
+        shapes = new List<Shape>();
+        shapes.Add(new Shape('#', sprite.Select(x => new string(x)).ToArray()));
+        //if (mainshape != null) shapes.Add(mainshape);
+
+        //var blocked = new List<bool[]>();
+        //for (int y = Height; y >= 0; y--) {
+        //    var row = new bool[width];
+        //    for (int x = 0; x < width; x++) {
+        //        if (!IsFree(null, new Point(x, y))) row[x] = true;
+        //    }
+        //    blocked.Add(row);
+        //    if (row.All(x=>x)) {
+        //        heightOffset = y;
+        //        break;
+        //    }
+        //}
+        //this.blocked = blocked;
+        //this.shapes = new List<Shape>(); // clear shapes
     }
 
     internal void SpawnShape(Shape shape) {
@@ -139,8 +203,10 @@ class Cave {
     }
 
     private bool TestPosition(Shape shape, Point fallCoordinates) {
+        //if (fallCoordinates.Y < heightOffset) return false;
         if (fallCoordinates.X < 0 || fallCoordinates.X + shape.Width > width) return false;
         if (fallCoordinates.Y < 0) return false;
+        //if (HitBlocked(fallCoordinates)) return false;
         var movedShape = new Shape(shape.Symbol, shape.Sprite) {
             CaveCoordinates = fallCoordinates
         };
@@ -152,6 +218,11 @@ class Cave {
         }
         return true;
     }
+
+    //private bool HitBlocked(Point fallCoordinates) {
+    //    if (fallCoordinates.Y - heightOffset >= blocked.Count) return false;
+    //    return blocked[fallCoordinates.Y - heightOffset][fallCoordinates.X];
+    //}
 
     internal bool TryPush(Shape shape, char direction) {
         //Console.WriteLine("Pushing towards " + direction);
